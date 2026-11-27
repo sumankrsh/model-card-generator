@@ -1,0 +1,44 @@
+# Synthetic example: an older life-insurance lapse model whose documentation
+# has fallen behind. Metrics are typed in by hand (no predictions file), and
+# several sections are missing. Every name and number here is invented.
+model:
+  name: Policy lapse early warning
+  version: 1.4.0
+  task: binary-classification
+  algorithm: Logistic regression
+  description: Flags in-force life policies likely to lapse in the next 90 days so the retention team can call the customer.
+
+intended_use:
+  primary: Prioritise the retention team's outbound calls.
+
+risk:
+  decision_impact: medium
+  autonomy: advisory
+  complexity: low
+  affects_individuals: true
+
+data:
+  training:
+    source: Policy administration system extract
+    period: 2021-01-01 to 2023-12-31
+    rows: 18500
+
+evaluation:
+  metrics:
+    auc: 0.71
+    precision: 0.38
+    recall: 0.52
+  metric_thresholds:
+    auc: {min: 0.72}
+  slices:
+    - {name: Policies under 2 years, rows: 2100, metrics: {auc: 0.66}}
+    - {name: Policies 2 years and over, rows: 6900, metrics: {auc: 0.73}}
+
+limitations:
+  - Not refreshed since the 2024 product change to premium holidays
+
+validation:
+  validator: Retention analytics
+  independent: false
+  date: 2024-03-01
+  next_review: 2025-03-01

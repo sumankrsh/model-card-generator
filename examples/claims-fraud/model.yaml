@@ -1,0 +1,132 @@
+# Synthetic example: a fraud-triage model for a made-up motor insurer.
+# Every name, team, date and number here is invented.
+model:
+  name: Motor claims fraud triage
+  version: 2.3.0
+  owner: Claims Analytics
+  developers: [Claims Analytics data science]
+  task: binary-classification
+  algorithm: Gradient-boosted trees
+  description: >-
+    Scores each new motor claim for the likelihood of fraud so that the
+    highest-scoring claims are sent to the special investigations unit (SIU)
+    for a manual review before payment.
+  date: 2026-11-20
+
+intended_use:
+  primary: >-
+    Rank new motor claims so that SIU handlers review the riskiest ones first.
+    A high score triggers a manual review; it never declines or delays a claim
+    on its own.
+  users:
+    - SIU claim handlers
+    - Claims operations managers
+  out_of_scope:
+    - Declining, delaying or reducing a claim payment without a handler's review
+    - Home, travel or pet claims (the model was trained on motor claims only)
+    - Pricing or underwriting decisions
+
+risk:
+  decision_impact: high
+  autonomy: human-in-the-loop
+  complexity: medium
+  affects_individuals: true
+  regulatory_context:
+    - Customer fair-treatment rules for claims handling
+    - Data protection rules on automated decision-making
+
+methodology:
+  approach: >-
+    Gradient-boosted trees on claim, policy and repair-estimate features,
+    tuned with 5-fold cross-validation on the training period and tested on a
+    later, untouched quarter.
+  features:
+    - Days between policy start and incident
+    - Repair estimate against the vehicle's typical cost
+    - Number of earlier claims on the policy
+    - Claim channel
+  assumptions:
+    - Fraud labels from closed SIU investigations are correct
+    - Claim mix in the evaluation quarter is representative of live traffic
+  alternatives:
+    - Logistic regression (AUC 0.04 lower on cross-validation, kept as a fallback)
+
+data:
+  training:
+    name: Closed motor claims
+    source: Claims warehouse, closed claims with an SIU outcome
+    owner: Claims Data Office
+    period: 2023-01-01 to 2026-03-31
+    rows: 41210
+  evaluation:
+    name: Evaluation quarter
+    source: Claims closed after the training period
+    owner: Claims Data Office
+    period: 2026-04-01 to 2026-06-30
+    rows: 2400
+    path: predictions.csv
+    sha256: e283dc8797ccc65f179b7db0a43da18537faa08f09d91386b2e078481aaeeb98
+
+lineage:
+  - {step: Extract closed claims, from: claims warehouse, to: claims_closed snapshot, owner: Claims Data Office}
+  - {step: Join SIU outcomes, from: SIU case system, to: labelled_claims, owner: Claims Analytics}
+  - {step: Build features, from: labelled_claims, to: fraud_features_v7, owner: Claims Analytics}
+  - {step: Score evaluation quarter, from: fraud_features_v7, to: predictions.csv, owner: Claims Analytics}
+
+evaluation:
+  predictions: predictions.csv
+  label_column: fraud
+  score_column: score
+  threshold: 0.5
+  positive_label: 1
+  groups: [age_band, region, channel]
+  reference_groups: {age_band: "30-49"}
+  metric_thresholds:
+    auc: {min: 0.80}
+    recall: {min: 0.55}
+    precision: {min: 0.50}
+    ece: {max: 0.10}
+
+fairness:
+  max_gap: 0.05
+  min_ratio: 0.8
+  min_slice_rows: 100
+
+human_oversight:
+  - Every referred claim is reviewed by an SIU handler, who can close the referral with no action
+  - Handlers see the top three score drivers, not just the score
+  - Claims operations sample 5% of non-referred claims each month to look for missed fraud
+robustness:
+  - Scores are capped when a repair estimate is missing or above the 99.9th percentile
+  - The scoring service rejects requests with unknown claim channels instead of guessing
+ethical_considerations:
+  - A referral delays payment for an honest customer, so false positives have a real cost
+  - Age is not a model input, but features linked to age (vehicle age, years insured) are
+limitations:
+  - Trained on claims with an SIU outcome, so fraud types the SIU rarely investigates are under-represented
+  - Not tested on claims from the Islands region in any volume (70 rows in the evaluation quarter)
+
+monitoring:
+  metrics: [auc, recall, selection_rate, fpr by age_band]
+  frequency: monthly
+  owner: Claims Analytics
+  triggers:
+    - AUC below 0.78 for two months in a row
+    - Selection rate ratio for any age band below 0.8
+
+validation:
+  validator: Model Validation (independent of Claims Analytics)
+  independent: true
+  date: 2026-10-15
+  outcome: approved with conditions
+  next_review: 2027-10-15
+  conditions:
+    - Explain or fix the lower true positive rate for the 70+ age band before the next release
+
+approvals:
+  - {role: Model owner, name: R. Okafor, date: 2026-10-20, decision: approved}
+  - {role: Model risk, name: L. Brandt, date: 2026-10-22, decision: approved with conditions}
+
+changes:
+  - {version: 2.3.0, date: 2026-11-20, summary: Added repair-estimate ratio feature; retrained on data to March 2026}
+  - {version: 2.2.1, date: 2026-05-02, summary: Fixed channel mapping for aggregator claims}

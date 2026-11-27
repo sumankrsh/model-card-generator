@@ -1,0 +1,97 @@
+# model-card-generator manifest. Fill in what you know; anything left out
+# appears in the card as "Not provided" and in the findings.
+model:
+  name: My model
+  version: 0.1.0
+  owner: Team that owns the model
+  task: binary-classification
+  algorithm: Logistic regression
+  description: One or two sentences on what the model does.
+  date: 2026-01-31
+
+intended_use:
+  primary: What decision the model supports, and for whom.
+  users:
+    - Who uses the output
+  out_of_scope:
+    - Uses the model must not be put to
+
+risk:
+  decision_impact: medium        # low | medium | high
+  autonomy: human-in-the-loop    # advisory | human-in-the-loop | automated
+  complexity: low                # low | medium | high
+  affects_individuals: true
+  regulatory_context:
+    - Any rules the owner believes apply
+
+methodology:
+  approach: How the model was built and why this approach.
+  features:
+    - Main inputs
+  assumptions:
+    - What has to stay true for the model to work
+
+data:
+  training:
+    source: Where it came from
+    owner: Who owns it
+    period: 2024-01-01 to 2025-12-31
+    rows: 10000
+  evaluation:
+    source: Where it came from
+    owner: Who owns it
+    period: 2026-01-01 to 2026-03-31
+    rows: 2000
+
+lineage:
+  - {step: Extract, from: source system, to: feature table, owner: Data engineering}
+
+evaluation:
+  # Point at a CSV with one row per scored case (relative to this file) and the
+  # tool computes every metric and group result itself. Until then, the
+  # metrics below are shown as reported, not recomputed.
+  # predictions: predictions.csv
+  metrics: {auc: 0.74}
+  label_column: label
+  score_column: score            # or prediction_column for 0/1 predictions
+  threshold: 0.5
+  positive_label: 1
+  groups: []                     # columns to break results down by
+  reference_groups: {}           # e.g. {age_band: "30-49"}; default is the largest slice
+  metric_thresholds:
+    auc: {min: 0.7}
+
+fairness:
+  max_gap: 0.05
+  min_ratio: 0.8
+  min_slice_rows: 100
+
+human_oversight:
+  - Who reviews the output before it is acted on
+robustness:
+  - How the model was tested against bad or unusual input
+ethical_considerations:
+  - Who could be harmed, and how
+limitations:
+  - Where the model is known to perform poorly
+
+monitoring:
+  metrics: [auc, selection_rate]
+  frequency: monthly
+  owner: Team that owns the model
+  triggers:
+    - What makes the owner act
+
+validation:
+  validator: Who validated it
+  independent: true
+  date: 2026-02-15
+  outcome: approved
+  next_review: 2027-02-15
+  conditions: []
+
+approvals:
+  - {role: Model owner, name: A. Person, date: 2026-02-20, decision: approved}
+
+changes:
+  - {version: 0.1.0, date: 2026-01-31, summary: First version}

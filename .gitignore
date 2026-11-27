@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+demo/out/
+/MODEL_CARD.md
+/card.html
+/card.json
+/report.html
+/model.yaml
